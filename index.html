@@ -16,7 +16,7 @@
             justify-content: center;
             align-items: center;
             perspective: 1000px;
-            touch-action: manipulation;
+            touch-action: pan-y; /* Cambiado a pan-y para permitir desplazamiento vertical */
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -54,6 +54,7 @@
             overflow-y: auto;
             max-height: 80vh;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain; /* Mejorar el comportamiento de desplazamiento */
         }
 
         h1 {
@@ -168,41 +169,63 @@
         const message = document.getElementById('message');
 
         function handleInteraction(x, y) {
-            const xPos = x / window.innerWidth;
-            const yPos = y / window.innerHeight;
-            
-            content.style.transform = `
-                rotateX(${(yPos - 0.5) * 8}deg)
-                rotateY(${(xPos - 0.5) * -8}deg)
-                translateX(${(xPos - 0.5) * -15}px)
-                translateY(${(yPos - 0.5) * -15}px)
-            `;
-            
-            const hue = xPos * 60 + 270;
-            title.style.textShadow = `0 0 10px hsl(${hue}, 100%, 70%)`;
-            
-            const scale = 1 + (yPos - 0.5) * 0.05;
-            title.style.transform = `scale(${scale})`;
-            
-            message.style.textShadow = `
-                ${(xPos - 0.5) * 8}px ${(yPos - 0.5) * 8}px 3px rgba(147, 112, 219, 0.7)
-            `;
+            // Solo aplicar efectos si el toque está dentro del área del contenido
+            const contentRect = content.getBoundingClientRect();
+            if (x >= contentRect.left && x <= contentRect.right && 
+                y >= contentRect.top && y <= contentRect.bottom) {
+                
+                const xPos = (x - contentRect.left) / contentRect.width;
+                const yPos = (y - contentRect.top) / contentRect.height;
+                
+                content.style.transform = `
+                    rotateX(${(yPos - 0.5) * 8}deg)
+                    rotateY(${(xPos - 0.5) * -8}deg)
+                    translateX(${(xPos - 0.5) * -15}px)
+                    translateY(${(yPos - 0.5) * -15}px)
+                `;
+                
+                const hue = xPos * 60 + 270;
+                title.style.textShadow = `0 0 10px hsl(${hue}, 100%, 70%)`;
+                
+                const scale = 1 + (yPos - 0.5) * 0.05;
+                title.style.transform = `scale(${scale})`;
+                
+                message.style.textShadow = `
+                    ${(xPos - 0.5) * 8}px ${(yPos - 0.5) * 8}px 3px rgba(147, 112, 219, 0.7)
+                `;
+                
+                createParticles(x, y);
+            }
         }
 
         // Eventos para móvil y desktop
         if (isMobile) {
-            document.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                handleInteraction(touch.clientX, touch.clientY);
-                createParticles(touch.clientX, touch.clientY);
+            let touchStartY;
+            
+            content.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            
+            content.addEventListener('touchmove', (e) => {
+                const touchY = e.touches[0].clientY;
+                const touchX = e.touches[0].clientX;
+                
+                // Solo prevenir el desplazamiento si no estamos en los bordes del contenido
+                const contentRect = content.getBoundingClientRect();
+                const isAtTop = content.scrollTop === 0 && touchY > touchStartY;
+                const isAtBottom = content.scrollHeight - content.scrollTop === content.clientHeight && touchY < touchStartY;
+                
+                if (!isAtTop && !isAtBottom) {
+                    e.preventDefault();
+                }
+                
+                handleInteraction(touchX, touchY);
             }, { passive: false });
             
-            document.addEventListener('touchend', resetStyles);
+            content.addEventListener('touchend', resetStyles);
         } else {
             document.addEventListener('mousemove', (e) => {
                 handleInteraction(e.clientX, e.clientY);
-                createParticles(e.clientX, e.clientY);
             });
             
             document.addEventListener('mouseout', resetStyles);
