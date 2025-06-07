@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Feliz Cumpleaños</title>
     <style>
         body {
@@ -16,6 +16,8 @@
             justify-content: center;
             align-items: center;
             perspective: 1000px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #space {
@@ -32,6 +34,7 @@
             background-color: white;
             border-radius: 50%;
             z-index: 1;
+            will-change: transform, opacity;
         }
 
         #content {
@@ -39,26 +42,51 @@
             z-index: 2;
             color: white;
             text-align: center;
+            width: 85%;
             max-width: 800px;
-            padding: 40px;
+            padding: 20px;
             background-color: rgba(51, 0, 102, 0.5);
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(147, 112, 219, 0.5);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(147, 112, 219, 0.5);
             transition: transform 0.3s ease;
             backdrop-filter: blur(5px);
+            margin: 20px;
+            overflow-y: auto;
+            max-height: 80vh;
+            -webkit-overflow-scrolling: touch;
         }
 
         h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
+            font-size: 2em;
+            margin-bottom: 15px;
             text-shadow: 0 0 10px mediumpurple;
             transition: all 0.3s ease;
         }
 
         p {
-            font-size: 1.2em;
-            line-height: 1.6;
+            font-size: 1em;
+            line-height: 1.5;
             text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Efecto de partículas */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 3em;
+            }
+            p {
+                font-size: 1.2em;
+            }
+            #content {
+                padding: 30px;
+            }
         }
     </style>
 </head>
@@ -79,51 +107,53 @@
     </div>
 
     <script>
-        // Crear estrellas
-        const space = document.getElementById('space');
-        const numStars = 200;
+        // Optimización para móviles
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Ajustar número de estrellas según dispositivo
+        const numStars = isMobile ? 100 : 200;
         const stars = [];
 
+        // Crear estrellas
+        const space = document.getElementById('space');
+        
         for (let i = 0; i < numStars; i++) {
             const star = document.createElement('div');
             star.className = 'star';
             
-            // Tamaño aleatorio entre 1 y 3px
-            const size = Math.random() * 2 + 1;
+            const size = Math.random() * (isMobile ? 1.5 : 2) + 1;
             star.style.width = `${size}px`;
             star.style.height = `${size}px`;
-            
-            // Posición aleatoria
             star.style.left = `${Math.random() * 100}%`;
             star.style.top = `${Math.random() * 100}%`;
-            
-            // Opacidad aleatoria
-            star.style.opacity = Math.random();
-            
-            // Velocidad aleatoria (para animación posterior)
-            star.speed = Math.random() * 0.2 + 0.05;
+            star.style.opacity = Math.random() * 0.8 + 0.2;
+            star.speed = Math.random() * 0.1 + 0.05;
             
             space.appendChild(star);
             stars.push(star);
         }
 
-        // Animar estrellas
-        function animateStars() {
-            for (const star of stars) {
-                // Mover las estrellas hacia abajo
-                let y = parseFloat(star.style.top) + star.speed;
+        // Animación optimizada para móviles
+        let lastFrameTime = 0;
+        const frameInterval = 1000 / 30; // 30 FPS para móviles
+
+        function animateStars(timestamp) {
+            if (!lastFrameTime || timestamp - lastFrameTime >= frameInterval) {
+                lastFrameTime = timestamp;
                 
-                // Si la estrella sale de la pantalla, reiniciar en la parte superior
-                if (y > 100) {
-                    y = 0;
-                    star.style.left = `${Math.random() * 100}%`;
-                }
-                
-                star.style.top = `${y}%`;
-                
-                // Parpadeo aleatorio
-                if (Math.random() > 0.95) {
-                    star.style.opacity = Math.random();
+                for (const star of stars) {
+                    let y = parseFloat(star.style.top) + star.speed;
+                    
+                    if (y > 100) {
+                        y = 0;
+                        star.style.left = `${Math.random() * 100}%`;
+                    }
+                    
+                    star.style.top = `${y}%`;
+                    
+                    if (Math.random() > 0.97) {
+                        star.style.opacity = Math.random() * 0.8 + 0.2;
+                    }
                 }
             }
             
@@ -132,164 +162,149 @@
 
         animateStars();
 
-        // Efecto de movimiento con el cursor
+        // Efectos interactivos (funciona con toques en móviles)
         const content = document.getElementById('content');
         const title = document.getElementById('title');
         const message = document.getElementById('message');
 
-        document.addEventListener('mousemove', (e) => {
-            const x = e.clientX / window.innerWidth;
-            const y = e.clientY / window.innerHeight;
+        function handleInteraction(x, y) {
+            const xPos = x / window.innerWidth;
+            const yPos = y / window.innerHeight;
             
-            // Mover el contenido en dirección opuesta al cursor
             content.style.transform = `
-                rotateX(${(y - 0.5) * 10}deg)
-                rotateY(${(x - 0.5) * -10}deg)
-                translateX(${(x - 0.5) * -20}px)
-                translateY(${(y - 0.5) * -20}px)
+                rotateX(${(yPos - 0.5) * 8}deg)
+                rotateY(${(xPos - 0.5) * -8}deg)
+                translateX(${(xPos - 0.5) * -15}px)
+                translateY(${(yPos - 0.5) * -15}px)
             `;
             
-            // Cambiar color del título basado en posición X
-            const hue = x * 60 + 270; // Entre 270 y 330 (tonos morados)
-            title.style.textShadow = `0 0 15px hsl(${hue}, 100%, 70%)`;
+            const hue = xPos * 60 + 270;
+            title.style.textShadow = `0 0 10px hsl(${hue}, 100%, 70%)`;
             
-            // Cambiar tamaño del texto basado en posición Y
-            const scale = 1 + (y - 0.5) * 0.1;
+            const scale = 1 + (yPos - 0.5) * 0.05;
             title.style.transform = `scale(${scale})`;
             
-            // Efecto de iluminación en el párrafo
             message.style.textShadow = `
-                ${(x - 0.5) * 10}px ${(y - 0.5) * 10}px 5px rgba(147, 112, 219, 0.7)
+                ${(xPos - 0.5) * 8}px ${(yPos - 0.5) * 8}px 3px rgba(147, 112, 219, 0.7)
             `;
-        });
+        }
 
-        // Configuración de las partículas
+        // Eventos para móvil y desktop
+        if (isMobile) {
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                handleInteraction(touch.clientX, touch.clientY);
+                createParticles(touch.clientX, touch.clientY);
+            }, { passive: false });
+            
+            document.addEventListener('touchend', resetStyles);
+        } else {
+            document.addEventListener('mousemove', (e) => {
+                handleInteraction(e.clientX, e.clientY);
+                createParticles(e.clientX, e.clientY);
+            });
+            
+            document.addEventListener('mouseout', resetStyles);
+        }
+
+        function resetStyles() {
+            content.style.transform = '';
+            title.style.textShadow = '0 0 10px mediumpurple';
+            title.style.transform = '';
+            message.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.5)';
+        }
+
+        // Sistema de partículas optimizado
         const particleSettings = {
-          count: 3,        // Partículas creadas por movimiento
-          sizeMin: 1,      // Tamaño mínimo en px
-          sizeMax: 4,      // Tamaño máximo en px
-          lifespan: 600,  // Duración en milisegundos
-          colors: ['#ffffff', '#d8b4fe', '#c084fc', '#a855f7'], // Colores morados
-          spread: 20       // Dispersión desde el punto del mouse
+          count: isMobile ? 2 : 3,
+          sizeMin: 1,
+          sizeMax: isMobile ? 3 : 4,
+          lifespan: isMobile ? 400 : 600,
+          colors: ['#ffffff', '#d8b4fe', '#c084fc', '#a855f7'],
+          spread: isMobile ? 15 : 20
         };
 
-        // Array para almacenar las partículas activas
         let particles = [];
+        let particleContainer;
 
-        // Función para inicializar el efecto
         function initParticleEffect() {
-          // Crear contenedor de partículas si no existe
-          if (!document.getElementById('particles-container')) {
-            const container = document.createElement('div');
-            container.id = 'particles-container';
-            container.style.position = 'fixed';
-            container.style.top = '0';
-            container.style.left = '0';
-            container.style.width = '100%';
-            container.style.height = '100%';
-            container.style.pointerEvents = 'none';
-            container.style.zIndex = '9999';
-            document.body.appendChild(container);
-          }
-
-          // Escuchar el movimiento del mouse
-          document.addEventListener('mousemove', (e) => {
-            createParticles(e.clientX, e.clientY);
-          });
-
-          // Animar las partículas
+          particleContainer = document.createElement('div');
+          particleContainer.id = 'particles-container';
+          particleContainer.style.cssText = `
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+          `;
+          document.body.appendChild(particleContainer);
           requestAnimationFrame(animateParticles);
         }
 
-        // Función para crear partículas
         function createParticles(x, y) {
-          const container = document.getElementById('particles-container');
-          
           for (let i = 0; i < particleSettings.count; i++) {
             const particle = document.createElement('div');
-            particle.className = 'particle';
-            
-            // Configuración aleatoria para cada partícula
             const size = Math.random() * (particleSettings.sizeMax - particleSettings.sizeMin) + particleSettings.sizeMin;
             const color = particleSettings.colors[Math.floor(Math.random() * particleSettings.colors.length)];
             const angle = Math.random() * Math.PI * 2;
             const distance = Math.random() * particleSettings.spread;
             
-            // Posición inicial con dispersión aleatoria
-            const posX = x + Math.cos(angle) * distance;
-            const posY = y + Math.sin(angle) * distance;
+            particle.style.cssText = `
+              position: absolute;
+              width: ${size}px; height: ${size}px;
+              background-color: ${color};
+              border-radius: 50%;
+              left: ${x + Math.cos(angle) * distance}px;
+              top: ${y + Math.sin(angle) * distance}px;
+              pointer-events: none;
+              transform: translate(-50%, -50%);
+              box-shadow: 0 0 ${size * 2}px ${size}px ${color};
+              opacity: 1;
+              transition: opacity ${particleSettings.lifespan * 0.8}ms ease-out;
+              will-change: transform, opacity;
+            `;
             
-            // Estilos de la partícula
-            particle.style.position = 'absolute';
-            particle.style.width = `${size}px`;
-            particle.style.height = `${size}px`;
-            particle.style.backgroundColor = color;
-            particle.style.borderRadius = '50%';
-            particle.style.left = `${posX}px`;
-            particle.style.top = `${posY}px`;
-            particle.style.pointerEvents = 'none';
-            particle.style.transform = 'translate(-50%, -50%)';
-            particle.style.boxShadow = `0 0 ${size * 2}px ${size}px ${color}`;
-            particle.style.opacity = '1';
-            particle.style.transition = `opacity ${particleSettings.lifespan * 0.8}ms ease-out`;
-            
-            // Almacenar información de la partícula
-            const particleData = {
+            particles.push({
               element: particle,
               createdAt: Date.now(),
               lifespan: particleSettings.lifespan,
               velocity: {
-                x: (Math.random() - 0.5) * 2,
-                y: (Math.random() - 0.5) * 2
+                x: (Math.random() - 0.5) * (isMobile ? 1.5 : 2),
+                y: (Math.random() - 0.5) * (isMobile ? 1.5 : 2)
               }
-            };
+            });
             
-            particles.push(particleData);
-            container.appendChild(particle);
+            particleContainer.appendChild(particle);
           }
         }
 
-        // Función para animar las partículas
         function animateParticles() {
           const now = Date.now();
-          const container = document.getElementById('particles-container');
           
           for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             const age = now - p.createdAt;
-            const progress = age / p.lifespan;
             
-            // Actualizar posición basada en la velocidad
-            const currentX = parseFloat(p.element.style.left);
-            const currentY = parseFloat(p.element.style.top);
-            p.element.style.left = `${currentX + p.velocity.x}px`;
-            p.element.style.top = `${currentY + p.velocity.y}px`;
-            
-            // Actualizar opacidad
-            if (progress > 0.8) {
-              p.element.style.opacity = (1 - (progress - 0.8) / 0.2).toString();
-            }
-            
-            // Eliminar partículas antiguas
             if (age > p.lifespan) {
-              container.removeChild(p.element);
+              p.element.remove();
               particles.splice(i, 1);
+            } else {
+              const currentX = parseFloat(p.element.style.left);
+              const currentY = parseFloat(p.element.style.top);
+              p.element.style.left = `${currentX + p.velocity.x}px`;
+              p.element.style.top = `${currentY + p.velocity.y}px`;
+              
+              if (age > p.lifespan * 0.8) {
+                p.element.style.opacity = (1 - (age - p.lifespan * 0.8) / (p.lifespan * 0.2)).toString();
+              }
             }
           }
           
           requestAnimationFrame(animateParticles);
         }
 
-        // Iniciar el efecto
         initParticleEffect();
-
-        // Restablecer posición cuando el cursor sale
-        document.addEventListener('mouseout', () => {
-            content.style.transform = '';
-            title.style.textShadow = '0 0 10px mediumpurple';
-            title.style.transform = '';
-            message.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.5)';
-        });
     </script>
 </body>
 </html>
